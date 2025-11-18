@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>128x128 D3 Matrix</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .cell {
+            stroke: #eee; /* Outline for visibility */
+        }
+        svg {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sensor Array Data (128x128)</h1>
+    <p>Data is updating every 1 seconds.</p>
+    <svg id="matrix" width="512" height="512"></svg>
+    <script src="matrix.js"></script>
+</body>
+</html>

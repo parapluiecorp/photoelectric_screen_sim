@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>D3 Matrix & Binary Decoding Tests</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Mocha and Chai CDN links -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mocha/10.2.0/mocha.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/10.2.0/mocha.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chai/4.3.7/chai.min.js"></script>
+    <style>
+        .cell {
+            stroke: #333;
+            transition: fill 0.4s ease;
+        }
+        #matrix {
+            border: 2px solid #1f2937;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        /* Mocha specific styles to ensure tests are visible */
+        #mocha {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #fdfdfd;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8 font-sans">
+    <!-- Removed max-w-6xl to give the content more room to breathe -->
+    <div class="mx-auto"> 
+        <h1 class="text-3xl font-bold mb-4 text-gray-800">Real-Time Sensor Array Visualization</h1>
+        <p class="text-gray-600 mb-6">Fetching latest data from Python server API endpoint: <code class="bg-yellow-100 p-1 rounded">/latest_matrix</code></p>
+        
+        <!-- FIX: Updated the flex container classes -->
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- Visualization Panel: Explicitly set a fixed width of 512px on medium screens and up, 
+                 and prevent it from shrinking to protect the SVG. -->
+            <div class="flex-none w-full md:w-[512px]">
+                <svg id="matrix" width="512" height="512" class="bg-white rounded-lg"></svg>
+            </div>
+            
+            <!-- Status Panel: Allow it to take up the rest of the available space. -->
+            <div class="flex-grow bg-white p-4 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-3 border-b pb-2">Status</h2>
+                <div id="data-status" class="text-sm text-gray-700">Waiting for first fetch...</div>
+            </div>
+        </div>
+
+        <!-- MOCHA TEST RESULTS CONTAINER: This is where the results will appear. -->
+        <div id="mocha" class="mt-8 shadow-xl"></div>
+    </div>
+
+    <!-- Combined Core Logic and Test Execution Block -->
+    <script>
+        // --- Configuration ---
+        const N = 128; // Matrix dimension
+        const CELL_SIZE = 512 / N; 
+        const INTERVAL_MS = 1000; // 1 second update rate
+        const DATA_API_URL = 'http://127.0.0.1:5000/latest_matrix';
+        const SAMPLE_DATA_SOURCE_URL = 'http://127.0.0.1:5000/sensor_data';
+
+
+        // --- D3 Setup ---
+        const svg = d3.select("#matrix");
+        const dataStatusDiv = d3.select("#data-status");
+        
+        // Color scale (0-100 map to color)
+        const colorScale = d3.scaleSequential(d3.interpolateYlOrRd).domain([0, 100]); 
+        // const colorScale = d3.scaleSequential(d3.interpolateYlOrRd).domain([0, 100]); // Data normalized from 0 to 100
+    
+        // Initial data placeholder
+        const initialData = Array(N * N).fill(0).map((d, i) => ({
+            x: i % N,
+            y: Math.floor(i / N),
+            value: 0
+        }));
+
+
+        // --- Data Transformation Logic (Core Logic) ---
+
+        /**
+         * Decodes the JSON response containing the matrix array.
+         * @param {Array<number>} flatValues - The 16384 element array of floats (0-100).
+         * @returns {Array<Object>} D3-compatible data objects: [{x, y, value}, ...]
+         */
+        function transformFlatData(flatValues) {
+            const data = [];
+            for (let i = 0; i < flatValues.length; i++) {
+                data.push({
+                    x: i % N,
+                    y: Math.floor(i / N),
+                    value: flatValues[i]
+                });
+            }
+            return data;
+        }
+        
+        // --- D3 Rendering ---
+
+        function updateMatrix(data) {
+            const cells = svg.selectAll(".cell")
+                .data(data, d => `${d.x}-${d.y}`);
+
+            cells.enter()
+                .append("rect")
+                .attr("class", "cell")
+                .attr("x", d => d.x * CELL_SIZE)
+                .attr("y", d => d.y * CELL_SIZE)
+                .attr("width", CELL_SIZE)
+                .attr("height", CELL_SIZE)
+                .merge(cells)
+                .transition()
+                .duration(INTERVAL_MS * 1)
+                .attr("fill", d => colorScale(d.value));
+        }
+
+        // --- Data Fetching Loop ---
+
+        function runFetchLoop() {
+            d3.interval(() => {
+                dataStatusDiv.html(`Fetching... (${new Date().toLocaleTimeString()})`);
+                
+                fetch(DATA_API_URL)
+                    .then(response => {
+                        if (response.status === 204) {
+                            dataStatusDiv.text("Waiting for live UDP data...");
+                            return Promise.reject("No data received yet (204)");
+                        }
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json(); 
+                    })
+                    .then(data => {
+                        const matrixData = transformFlatData(data.matrix);
+                        updateMatrix(matrixData);
+                        dataStatusDiv.html(`
+                            <p>Status: <span class="text-green-600 font-bold">LIVE</span></p>
+                            <p>Timestamp: ${new Date(data.timestamp).toLocaleTimeString()}</p>
+                            <p>Source: ${data.message.includes("UDP") ? 'UDP Stream' : 'Synthetic Fallback'}</p>
+                        `);
+                    })
+                    .catch(error => {
+                        if (error !== "No data received yet (204)") {
+                            dataStatusDiv.html(`<p class="text-red-600 font-bold">Error: ${error.message || error}</p>`);
+                        }
+                    });
+            }, INTERVAL_MS);
+        }
+        // --- MOCHA/CHAI TEST DEFINITION (INTEGRATED) ---
+        
+        // Since we are in the same script block, variables like N are immediately available.
+        const expect = chai.expect;
+        const EXPECTED_ARRAY_SIZE = N * N;
+
+        mocha.setup('bdd'); // Set up BDD interface immediately
+
+        describe('Data Transformation Logic (transformFlatData)', () => {
+
+            it('should correctly transform a flat array into 16384 D3 coordinate objects', () => {
+                // Arrange: Create a mock input array of the expected size
+                const mockInput = Array(EXPECTED_ARRAY_SIZE).fill(50);
+                
+                // Act
+                const output = transformFlatData(mockInput);
+                
+                // Assert
+                expect(output).to.be.an('array');
+                expect(output).to.have.lengthOf(EXPECTED_ARRAY_SIZE, `The output array length must be ${EXPECTED_ARRAY_SIZE}`);
+                expect(output[0]).to.have.keys(['x', 'y', 'value']);
+            });
+
+            it('should correctly map values and calculate grid coordinates', () => {
+                // Arrange: Input array with specific values to check mapping and coordinates
+                const specificValue = 77.7;
+                const mockInput = [0, 100, specificValue]; // Check index 2
+                for (let i = 3; i < EXPECTED_ARRAY_SIZE; i++) { mockInput.push(50); } // Pad the rest
+
+                // The coordinate for index 2 should be x=2, y=0 (since 2 % 128 = 2 and floor(2/128) = 0)
+                const output = transformFlatData(mockInput);
+
+                // Assert: Value check
+                expect(output[0].value).to.equal(0);
+                expect(output[1].value).to.equal(100);
+                expect(output[2].value).to.equal(specificValue);
+
+                // Assert: Coordinate check (index 129 should be x=1, y=1)
+                const index129 = N + 1; // 129
+                expect(output[index129].x).to.equal(1, 'Expected x=1');
+                expect(output[index129].y).to.equal(1, 'Expected y=1');
+                
+                // Assert: Coordinate check (index 128 should be x=0, y=1)
+                const index128 = N; // 128
+                expect(output[index128].x).to.equal(0, 'Expected x=0');
+                expect(output[index128].y).to.equal(1, 'Expected y=1');
+            });
+
+            it('should handle floating point numbers correctly', () => {
+                // Arrange
+                const floatValue = 3.14159;
+                const mockInput = Array(EXPECTED_ARRAY_SIZE).fill(floatValue);
+                const output = transformFlatData(mockInput);
+                
+                // Assert using closeTo for floating point comparison safety
+                expect(output[500].value).to.be.closeTo(floatValue, 0.00001, 'Value should match the float input');
+            });
+        });
+
+
+        // --- Initialization and Mocha Run ---
+        window.onload = function() {
+            // Initialize the visualization
+            updateMatrix(initialData);
+
+            // Start fetching data from the server
+            runFetchLoop();
+
+            // Run Mocha tests (guaranteed to run after all describe blocks are defined)
+            mocha.run();
+            
+            // FIX: Prevent page reload when interacting with Mocha's filter dropdown
+            const mochaContainer = document.getElementById('mocha');
+            if (mochaContainer) {
+                // Attach a listener to prevent default action (likely form submission) on change
+                mochaContainer.addEventListener('change', function(e) {
+                    // Check if the changed element is a select element (like the filter dropdown)
+                    if (e.target.tagName === 'SELECT') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                });
+            }
+        };
+    </script>
+</body>
+</html>
