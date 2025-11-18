@@ -1,3 +1,4 @@
+
 #Real-Time Sensor Array Visualization System
 
 This project demonstrates a multi-threaded Python Flask server that handles real-time, high-throughput binary sensor data via UDP (User Datagram Protocol), processes it, and exposes the latest processed data via a REST API endpoint. The frontend is a single-file D3.js/HTML client that fetches this data and displays it as a dynamic 128x128 heatmap visualization.
@@ -21,7 +22,6 @@ You must have Python 3.8+ installed.
 Python Dependencies:
 
 pip install Flask pytest
-
 
 ##📂 Project Structure
 
@@ -57,23 +57,21 @@ This file.
 
 To run the entire system, you need to execute the server and the sender in separate terminal windows, then open the client in your browser.
 
-1. Run the Flask Server
+    Run the Flask Server
 
 Start the primary server, which includes the UDP listener and the data processing threads.
 
 python server.py
 
-
 (The server will start on http://127.0.0.1:5000)
 
-2. Run the Data Sender (Simulator)
+    Run the Data Sender (Simulator)
 
 Open a new terminal window and start the simulator. This script sends a new 32KB UDP packet 10 times per second to the server's listener thread.
 
 python udp_sender.py
 
-
-3. View the Client
+    View the Client
 
 Open the testing_client.html file in your web browser (e.g., Chrome, Firefox).
 
@@ -83,7 +81,7 @@ The D3 visualization should begin updating immediately, showing a dynamic, movin
 
 The project includes unit tests for both the backend (Python) and the frontend (JavaScript).
 
-1. Backend Tests (Pytest)
+    Backend Tests (Pytest)
 
 The test_server.py file uses Pytest and the Flask test client to verify that the API endpoints function correctly, especially when handling different global states (None vs. live data).
 
@@ -91,17 +89,13 @@ To run the tests:
 
 pytest test_server.py
 
-
 Expected Output (all tests should pass):
 
-============================= test session starts =============================
-...
-test_server.py ...                                                     [100%]
+============================= test session starts ============================= ... test_server.py ... [100%]
 
 ============================== 3 passed in 0.xxs ==============================
 
-
-2. Frontend Tests (Mocha/Chai)
+    Frontend Tests (Mocha/Chai)
 
 The Mocha/Chai test suite is integrated directly into the testing_client.html file.
 
@@ -110,3 +104,4 @@ Open testing_client.html in your browser.
 Scroll down to the bottom of the page.
 
 The results of the "Data Transformation Logic" tests will be displayed in the Mocha Test Results Container, confirming that the client-side transformFlatData function correctly converts the server's JSON array into the necessary D3 coordinate objects.
+
