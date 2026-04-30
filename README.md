@@ -57,21 +57,21 @@ This file.
 
 To run the entire system, you need to execute the server and the sender in separate terminal windows, then open the client in your browser.
 
-    Run the Flask Server
+### Run the Flask Server.
 
 Start the primary server, which includes the UDP listener and the data processing threads.
 
-python server.py
+    python server.py
 
 (The server will start on http://127.0.0.1:5000)
 
-    Run the Data Sender (Simulator)
+### Run the Data Sender (Simulator)
 
 Open a new terminal window and start the simulator. This script sends a new 32KB UDP packet 10 times per second to the server's listener thread.
 
-python udp_sender.py
+    python udp_sender.py
 
-    View the Client
+### View the Client
 
 Open the testing_client.html file in your web browser (e.g., Chrome, Firefox).
 
@@ -81,13 +81,13 @@ The D3 visualization should begin updating immediately, showing a dynamic, movin
 
 The project includes unit tests for both the backend (Python) and the frontend (JavaScript).
 
-    Backend Tests (Pytest)
+### Backend Tests (Pytest)
 
 The test_server.py file uses Pytest and the Flask test client to verify that the API endpoints function correctly, especially when handling different global states (None vs. live data).
 
 To run the tests:
 
-pytest test_server.py
+    pytest test_server.py
 
 Expected Output (all tests should pass):
 
