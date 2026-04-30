@@ -21,35 +21,31 @@ You must have Python 3.8+ installed.
 
 Python Dependencies:
 
-pip install Flask pytest
+    pip install Flask pytest
 
 ## 📂 Project Structure
 
-File
-
-Description
-
-server.py
+**server.py**
 
 The main Flask application with UDP listener and data processing threads.
 
-udp_sender.py
+**udp_sender.py**
 
 Python script to simulate the microcontroller/sensor array output via UDP.
 
-testing_client.html
+**testing_client.html**
 
 Self-contained frontend using D3.js and Tailwind CSS for visualization, plus Mocha/Chai for testing.
 
-test_server.py
+**test_server.py**
 
 Pytest suite for backend API endpoints and data handling logic.
 
-matrix.js/index.html
+**matrix.js/index.html**
 
-Non-test harnessed source code.
+Indexed page.
 
-README.md
+**README.md**
 
 This file.
 
